@@ -545,7 +545,11 @@ struct USBDriver {
  * @notapi
  */
 #if (STM32_OTG_STEPPING == 1) || defined(__DOXYGEN__)
+#if defined(BOARD_OTG_NOVBUSSENS)
+#define usb_lld_disconnect_bus(usbp)
+#else
 #define usb_lld_disconnect_bus(usbp) ((usbp)->otg->GCCFG &= ~GCCFG_VBUSBSEN)
+#endif
 #else
 #define usb_lld_disconnect_bus(usbp) ((usbp)->otg->DCTL |= DCTL_SDIS)
 #endif
