@@ -55,6 +55,8 @@ static void hal_lld_backup_domain_init(void) {
 
   /* Backup domain access enabled and left open.*/
   PWR->CR |= PWR_CR_DBP;
+  while ((PWR->CR & PWR_CR_DBP) == 0)
+    ;               /* Waits backup domain write protection is disabled.   */
 
   /* Reset BKP domain if different clock source selected.*/
   if ((RCC->BDCR & STM32_RTCSEL_MASK) != STM32_RTCSEL) {
