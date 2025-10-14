@@ -514,6 +514,13 @@ void usbStartTransmitI(USBDriver *usbp, usbep_t ep,
   osalDbgCheck((usbp != NULL) && (ep <= (usbep_t)USB_MAX_ENDPOINTS));
   osalDbgAssert(!usbGetTransmitStatusI(usbp, ep), "already transmitting");
 
+#if defined(USB_REPORT_INTERVAL_ENABLE)
+  isp = usbp->epc[ep]->in_state;
+  if (ep != 0 && isp->report_interval_count < usbp->report_interval[ep]) {
+    return;
+  }
+#endif
+
   /* Marking the endpoint as active.*/
   usbp->transmitting |= (uint16_t)((unsigned)1U << (unsigned)ep);
 
