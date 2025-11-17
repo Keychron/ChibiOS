@@ -32,7 +32,7 @@
 /*===========================================================================*/
 
 /**
- * @name    RLR register definitions
+ * @name    IWDG RLR register definitions
  * @{
  */
 #define STM32_IWDG_RL_MASK                  (0x00000FFF << 0)
@@ -40,7 +40,7 @@
 /** @} */
 
 /**
- * @name    PR register definitions
+ * @name    IWDG PR register definitions
  * @{
  */
 #define STM32_IWDG_PR_MASK                  (7 << 0)
@@ -54,12 +54,33 @@
 /** @} */
 
 /**
- * @name    WINR register definitions
+ * @name    IWDG WINR register definitions (windowed families only)
  * @{
  */
 #define STM32_IWDG_WIN_MASK                 (0x00000FFF << 0)
 #define STM32_IWDG_WIN(n)                   ((n) << 0)
 #define STM32_IWDG_WIN_DISABLED             STM32_IWDG_WIN(0x00000FFF)
+/** @} */
+
+/**
+ * @name    WWDG CR/ CFR helper masks
+ * @note    Use CMSIS device headers for exact bit definitions if available.
+ * @{
+ */
+#if defined(WWDG)
+#ifndef WWDG_CR_WDGA
+#define WWDG_CR_WDGA                        (1U << 7)
+#endif
+#ifndef WWDG_CR_T
+#define WWDG_CR_T                           (0x7FU << 0)
+#endif
+#ifndef WWDG_CFR_W
+#define WWDG_CFR_W                          (0x7FU << 0)
+#endif
+#ifndef WWDG_CFR_WDGTB
+#define WWDG_CFR_WDGTB                      (3U << 7)
+#endif
+#endif /* defined(WWDG) */
 /** @} */
 
 /*===========================================================================*/
@@ -78,6 +99,15 @@
 #if !defined(STM32_WDG_USE_IWDG) || defined(__DOXYGEN__)
 #define STM32_WDG_USE_IWDG                  FALSE
 #endif
+
+/**
+ * @brief   WWDG driver enable switch.
+ * @details If set to @p TRUE the support for WWDG is included.
+ * @note    The default is @p FALSE.
+ */
+#if !defined(STM32_WDG_USE_WWDG) || defined(__DOXYGEN__)
+#define STM32_WDG_USE_WWDG                  FALSE
+#endif
 /** @} */
 
 /*===========================================================================*/
@@ -88,8 +118,12 @@
 #error "IWDG not present in the selected device"
 #endif
 
-#if !STM32_WDG_USE_IWDG
-#error "WDG driver activated but no xWDG peripheral assigned"
+#if STM32_WDG_USE_WWDG && !STM32_HAS_WWDG
+#error "WWDG not present in the selected device"
+#endif
+
+#if !STM32_WDG_USE_IWDG && !STM32_WDG_USE_WWDG
+#error "WDG driver activated but no WDG peripheral assigned"
 #endif
 
 #if !defined(STM32_LSI_ENABLED)
@@ -109,11 +143,16 @@
  */
 typedef struct WDGDriver WDGDriver;
 
+typedef enum {
+  WDG_PERIPH_IWDG = 0,
+  WDG_PERIPH_WWDG = 1
+} wdg_periph_t;
+
 /**
  * @brief   Driver configuration structure.
- * @note    It could be empty on some architectures.
  */
 typedef struct {
+#if STM32_WDG_USE_IWDG
   /**
    * @brief   Configuration of the IWDG_PR register.
    * @details See the STM32 reference manual for details.
@@ -132,10 +171,16 @@ typedef struct {
    */
   uint32_t    winr;
 #endif
+#endif
+#if STM32_WDG_USE_WWDG
+  /* WWDG fields */
+  uint32_t    cfr; /**< Preconfigured CFR (prescaler + window). */
+  uint8_t     cr;   /**< Reload counter value (0x40..0x7F typical). */
+#endif
 } WDGConfig;
 
 /**
- * @brief   Structure representing an WDG driver.
+ * @brief   Structure representing a WDG driver.
  */
 struct WDGDriver {
   /**
@@ -147,22 +192,34 @@ struct WDGDriver {
    */
   const WDGConfig           *config;
   /* End of the mandatory fields.*/
+#if STM32_WDG_USE_IWDG || STM32_WDG_USE_WWDG
+  wdg_periph_t              type;   /**< Which peripheral this driver controls. */
+  union {
+  #if STM32_WDG_USE_IWDG
   /**
    * @brief   Pointer to the IWDG registers block.
    */
-  IWDG_TypeDef              *wdg;
+    IWDG_TypeDef           *iwdg;
+  #endif
+  #if STM32_WDG_USE_WWDG
+  /**
+   * @brief   Pointer to the IWDG registers block.
+   */
+    WWDG_TypeDef           *wwdg;
+  #endif
+  } reg;
+#endif
 };
-
-/*===========================================================================*/
-/* Driver macros.                                                            */
-/*===========================================================================*/
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
 #if STM32_WDG_USE_IWDG && !defined(__DOXYGEN__)
-extern WDGDriver WDGD1;
+extern WDGDriver WDGD1;   /* IWDG instance */
+#endif
+#if STM32_WDG_USE_WWDG && !defined(__DOXYGEN__)
+extern WDGDriver WDGD2;   /* WWDG instance */
 #endif
 
 #ifdef __cplusplus
@@ -179,5 +236,3 @@ extern "C" {
 #endif /* HAL_USE_WDG == TRUE */
 
 #endif /* HAL_WDG_LLD_H */
-
-/** @} */
