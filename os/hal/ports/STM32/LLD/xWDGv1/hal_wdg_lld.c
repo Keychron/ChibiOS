@@ -82,7 +82,7 @@ static inline void wwdg_disable_clock(void) {
   rccDisableAPB1(RCC_APB1ENR_WWDGEN);
 #elif defined(RCC_APB1ENR1_WWDGEN)
   /* L4/G4/H7 style (APB1R1) */
-  rccDisableAPB1(RCC_APB1ENR1_WWDGEN);
+  rccDisableAPB1R1(RCC_APB1ENR1_WWDGEN);
 #elif defined(RCC_APB3ENR_WWDGEN)
   /* Some newer families */
   rccDisableAPB1(RCC_APB3ENR_WWDGEN);
